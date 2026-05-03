@@ -12,21 +12,35 @@
   --surface2: #161625;
   --surface3: #1e1e32;
   --surface4: #26263e;
-  --accent: #7c5cfc;
-  --accent2: #c45cfc;
-  --accent3: #5cf4fc;
-  --glow: rgba(124,92,252,0.4);
-  --glow2: rgba(196,92,252,0.3);
+  --accent: #3b82f6;
+  --accent2: #10b981;
+  --accent3: #f59e0b;
+  --glow: rgba(59,130,246,0.4);
+  --glow2: rgba(16,185,129,0.3);
   --text: #eeeaff;
   --text-muted: #9490bb;
   --text-dim: #4e4b6e;
   --border: rgba(255,255,255,0.06);
-  --border-accent: rgba(124,92,252,0.45);
+  --border-accent: rgba(59,130,246,0.45);
   --danger: #fc5c7d;
-  --green: #5cfca2;
+  --green: #10b981;
   --warn: #fccc5c;
   --radius: 20px;
   --radius-sm: 12px;
+  --radius-lg: 24px;
+}
+
+body[data-theme="light"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface2: #f1f5f9;
+  --surface3: #e2e8f0;
+  --surface4: #cbd5e1;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --border: rgba(0,0,0,0.06);
+  --border-accent: rgba(59,130,246,0.2);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;width:100%;}
@@ -124,7 +138,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .msg-content{max-width:80%;display:flex;flex-direction:column;gap:3px;}
 .msg-row.own .msg-content{align-items:flex-end;}
 
-.msg-bubble{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.6;word-break:break-word;}
+.msg-bubble{padding:12px 16px;border-radius:var(--radius-lg);font-size:14px;line-height:1.6;word-break:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
 .msg-bubble.in{background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px;color:var(--text);}
 .msg-bubble.out{background:linear-gradient(135deg,var(--accent),var(--accent2));border-bottom-right-radius:4px;color:#fff;box-shadow:0 4px 18px var(--glow);}
 .msg-bubble img{max-width:200px;border-radius:10px;display:block;margin-top:6px;}
@@ -136,7 +150,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .msg-row.own .msg-meta{flex-direction:row-reverse;}
 .msg-time{font-size:10px;color:var(--text-dim);}
 .del-btn{opacity:0;background:none;border:none;cursor:pointer;color:var(--text-dim);padding:2px 4px;border-radius:4px;transition:all 0.15s;display:flex;align-items:center;}
-.msg-row:hover .del-btn{opacity:1;}
+.del-btn.own-only{display:none;}
+.msg-row.own:hover .del-btn.own-only{display:flex;opacity:1;}
 .del-btn:hover{color:var(--danger);background:rgba(252,92,125,0.12);}
 
 .empty-chat{margin:auto;text-align:center;padding:32px 20px;}
@@ -276,11 +291,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <h2>Spark Chat</h2>
         <p><span id="online-label">Connecting…</span></p>
       </div>
-      <div class="hdr-right">
+<div class="hdr-right">
         <div class="user-pill">
           <div class="up-dot"></div>
           <span id="user-name-pill">You</span>
         </div>
+        <button id="theme-toggle" title="Toggle theme" onclick="toggleTheme()" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-dim);transition:all 0.2s;">
+          <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+        </button>
         <button id="logout-btn" title="Sign out" onclick="doLogout()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -575,14 +593,15 @@ function renderMsg(id, msg) {
   time.className = 'msg-time';
   time.textContent = new Date(msg.timestamp||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'del-btn';
-  delBtn.title = 'Delete';
-  delBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
-  delBtn.onclick = () => { if(confirm('Delete this message?')) msgRef.child(id).remove(); };
-
   meta.appendChild(time);
-  meta.appendChild(delBtn);
+  if (isOwn) {
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn own-only';
+    delBtn.title = 'Delete';
+    delBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+    delBtn.onclick = () => { if(confirm('Delete this message?')) msgRef.child(id).remove(); };
+    meta.appendChild(delBtn);
+  }
   content.appendChild(bubble);
   content.appendChild(meta);
   row.appendChild(ava);
@@ -663,6 +682,46 @@ function showToast(msg, ms=2200) {
 /* ── Enter key on auth inputs ── */
 document.getElementById('login-password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 document.getElementById('signup-password').addEventListener('keydown', e => { if(e.key==='Enter') doSignup(); });
+
+/* ── Theme Toggle ── */
+function toggleTheme() {
+  const body = document.body;
+  const isLight = body.dataset.theme === 'light';
+  body.dataset.theme = isLight ? 'dark' : 'light';
+  localStorage.setItem('theme', body.dataset.theme);
+  updateThemeIcon();
+}
+
+function updateThemeIcon() {
+  const icon = document.getElementById('theme-icon');
+  const isLight = document.body.dataset.theme === 'light';
+  if (isLight) {
+    icon.innerHTML = `<path stroke="currentColor" stroke-width="2" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+  } else {
+    icon.innerHTML = `<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>`;
+  }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.dataset.theme = saved;
+  updateThemeIcon();
+}
+
+// Init on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTheme);
+} else {
+  initTheme();
+}
+
+document.getElementById('theme-toggle').addEventListener('mouseenter', () => {
+  document.getElementById('theme-toggle').style.transform = 'scale(1.05)';
+});
+document.getElementById('theme-toggle').addEventListener('mouseleave', () => {
+  document.getElementById('theme-toggle').style.transform = 'scale(1)';
+});
 </script>
+
 </body>
 </html>
